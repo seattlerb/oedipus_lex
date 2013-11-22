@@ -1,0 +1,468 @@
+= Oedipus Lex - This is not your father's lexer
+
+home :: http://github.com/seattlerb/oedipus_lex
+rdoc :: http://docs.seattlerb.org/oedipus_lex
+
+== DESCRIPTION
+
+Oedipus Lex is a lexer generator in the same family as Rexical and
+Rex. Oedipus Lex is my independent lexer fork of Rexical. Rexical was
+in turn a fork of Rex. We've been unable to contact the author of rex
+in order to take it over, fix it up, extend it, and relicense it to
+MIT. So, Oedipus was written clean-room in order to bypass licensing
+constraints (and because bootstrapping is fun).
+
+Oedipus brings a lot of extras to the table and at this point is only
+historically related to rexical. The syntax has changed enough that
+any rexical lexer will have to be tweaked to work inside of oedipus.
+At the very least, you need to add slashes to all your regexps.
+
+Oedipus, like rexical, is based primarily on generating code much like
+you would a hand-written lexer. It is _not_ a table or hash driven
+lexer. It use StrScanner within a multi-level case statement. As such,
+Oedipus matches on the _first_ match, not the longest (like lex and
+its ilk).
+
+This documentation is not meant to bypass any prerequisite knowledge
+on lexing or parsing. If you'd like to study the subject in further
+detail, please try [TIN321] or the [LLVM Tutorial] or some other good
+resource for CS learning. Books... books are good. I like books.
+
+== Syntax:
+
+  lexer           = (misc_line)*
+                    /class/ class_id
+                    (option_section)?
+                    (inner_section)?
+                    (start_section)?
+                    (macro_section)?
+                    (rule_section)?
+                    /end/
+                    (misc_line)*
+
+  misc_line       = /.*/
+
+  class_id        = /\w+.*/
+
+  option_section  = /options?/ NL (option)*
+  option          = /stub/i
+                  | /debug/i
+
+  inner_section   = /inner/ NL (misc_line)*
+
+  start_section   = /start/ NL (misc_line)*
+
+  macro_section   = /macros?/ NL (macro)*
+  macro           = name regexp
+  name            = /\w+/
+  regexp          = /(\/(?:\\.|[^\/])+\/[io]?)/
+
+  rule_section    = /rules?/ NL (rule)*
+  rule            = (state)? regexp (action)?
+  state           = label
+                  | predicate
+  label           = /:\w+/
+  predicate       = /\w+\?/
+  action          = name
+                  | /\{.*\}.*/
+
+=== Basic Example
+
+    class Calculator
+    macros
+      NUMBER /\d+/
+    rules
+           /rpn/       :RPN # sets @state to :RPN
+           /#{NUMBER}/ { [:number, text.to_i] }
+           /\s+/
+           /[+-]/      { [:op, text] }
+
+      :RPN /\s+/
+      :RPN /[+-]/      { [:op2, text] }
+      :RPN /#{NUMBER}/ { [:number2, text.to_i] }
+      :RPN /alg/       nil # clears state
+    end
+
+==== Header
+
+Anything before the class line is considered the "header" and will be
+added to the top of your file. This includes extra lines like module
+namespacing.
+
+==== Class Line
+
+The class line, like a regular ruby class declaration, specifies what
+class all of the lexer code belongs to. You may simply specify a class
+name like:
+
+    class MyLexer
+
+or it may specify a superclass as well:
+
+    class MyLexer < MyParser
+
+You might do this latter case to mix your lexer and your racc parser
+together.
+
+Personally, I recommend keeping them apart for cleanliness and
+testability.
+
+==== Options
+
+There are currently only two options for Oedipus: "debug" and "stub".
+
+Specify `debug` to turn on basic tracing output.
+
+Specify `stub` to create a generic handler that processes all files
+specified on the commandline with a rather generic handler. This makes
+it easy to get up and running before you have the rest of your system
+in place.
+
+==== Inner
+
+The inner section is just code, like header or footer, but inner gets
+put _inside_ the class body. You can put extra methods here.
+
+Personally, I recommend you don't use inner and you put all of your
+extra methods and class code in a separate file. This makes lexer
+generation faster and keeps things separate and small.
+
+==== Macros
+
+Macros define named regexps that you can use via interpolation inside
+other subsequent macros or within rule matchers.
+
+==== Start
+
+The lexer runs in a loop until it finds a match or has to bail. Use
+the `start` section to place extra code at the top of your
+`next_token` method, before the loop. Eg:
+
+    start
+      space_seen = false
+
+This code will get expanded into the very top of the lexer method. Do
+note that this code gets run before _every token_, not just on lexer
+initialization.
+
+==== Rules
+
+The rule section is the meat of the lexer. It contains one or more
+rule lines where each line consists of:
+
+* a required state (as a `:symbol`), a predicate method, or nothing.
+* a regular expression.
+* an action method, an action block, or nothing.
+
+More often than not, a rule should not specify a required state. Only
+use them when you're convinced you need them.
+
+So a rule can very simple, including _just_ a regexp:
+
+  rules
+    /#.*/  # ignore comments
+
+or can contain any combination of state checks or action types:
+
+  rules
+    :state     /token/    action_method
+    predicate? /another/  { do_something }
+
+===== States and Predicates
+
+In order for the tokenizer to determine if the rule's regexp should
+even be considered, a rule may specify a required state, a predicate
+method to call, or leave it blank.
+
+If the rule does not specify a state, it can be used whenever `@state`
+is nil or a symbol that starts lowercase (an inclusive rule). If the
+rule specifies a symbol that starts uppercase (an exclusive rule), it
+will _only_ use those rules when `@state` matches.
+
+Alternatively, a rule may specify a predicate method to check. If that
+method returns a truthy value, the rule is currently valid. This is
+equivalent to setting the required state to nil, as it will be used
+with inclusive and nil states, and ignored for exclusive states.
+
+==== End & Footer
+
+Like the header, anything after the end line is considered the
+"footer" and will be added to the bottom of your file.
+
+== Suggested Structure
+
+Here's how I suggest you structure things:
+
+=== Rakefile
+
+You only need a minimum of dependencies to wire stuff up if you use
+the supplied rake rule.
+
+  Rake.application.rake_require "oedipus_lex"
+
+  task :lexer  => "lib/mylexer.rex.rb"
+  task :parser => :lexer # plus appropriate parser rules/deps
+  task :test   => :parser
+
+=== lib/mylexer.rex
+
+Put your lexer definition here. It will generate into
+`"lib/mylexer.rex.rb"`.
+
+  class MyLexer
+  macros
+    # ...
+  rules
+    # ...
+  end
+
+=== lib/mylexer.rb
+
+  require "new_ruby_lexer.rex"
+
+  class MyLexer
+    # ... predicate methods and stuff
+  end
+
+=== lib/myparser.rb
+
+Assuming you're using a racc based parser, you'll need to define a
+`next_token` method that bridges over to your lexer:
+
+  class MyParser
+    def next_token
+      lexer.next_token # plus any sanity checking / error handling...
+    end
+  end
+
+== Differences with Rexical
+
+If you're already familiar with rexical, this might help you get up
+and running faster. If not, it could provide an overview of the
+value-added.
+
+=== Additions or Changes
+
+==== A generic rake rule is defined for rex files.
+
+Oedipus defines a rake rule that allows you simply define a file-based
+dependency and rake will take care of the rest. Eg:
+
+  file "lib/mylexer.rex.rb" => "lib/mylexer.rex"
+
+  task :generated => %w[lib/mylexer.rex.rb]
+
+  task :test => :generated
+
+==== All regular expressions must be slash delimited.
+
+Basically, regexps are now plain slashed ruby regexps. This allows for
+regexp flags to be provided individually, rather than specifying an
+entire grammar is case-insensitive, you can have a single rule be case
+insensitive.
+
+Right now only `/i` and `/o` are properly handled.
+
+==== Regular expressions now use ruby interpolation.
+
+Instead of `aaa{{macro}}ccc` it is `/aaa#{macro}ccc/`.
+
+==== Macros define class constants.
+
+Macros simply become class constants inside the lexer class. This
+makes them immediately available to other macros and to the regexps in
+the rules section.
+
+This also implies that they must start uppercase, since that is
+required by ruby.
+
+==== Rules can be activated by predicate methods.
+
+Instead of just switching on state, rules can now check predicate
+methods to see if they should trigger. Eg:
+
+    rules
+      sad?   /\w+/    { [:sad,   text] }
+      happy? /\w+/    { [:happy, text] }
+    end
+
+    # elsewhere:
+    def sad?
+      # ...
+    end
+
+    def happy?
+      not sad?
+    end
+
+==== Rule actions are only a single-line.
+
+In order to push complexity down, `{ rule actions }` may only be a
+single line.
+
+==== Rules can invoke methods.
+
+For more complex actions, use a method by specifying its name:
+
+    rules
+      /\w+/    process_word
+    end
+
+And then define the handler method to return a result pair:
+
+    def process_word text
+      # do lots of normalization...
+      [:word, token]
+    end
+
+This strikes a good balance between readability and maintainability.
+It also makes it much easier to write unit tests for the complex
+actions.
+
+==== Rules can define state.
+
+There are shortcuts built in to define or clear state:
+
+  rules
+         /rpn/  :RPN  # sets @state to :RPN
+    # ...
+    :RPN /alg/   nil  # clears @state
+
+==== Use a `start` section to define pre-lex code.
+
+The lexer runs in a loop until it finds a match or has to bail.
+Sometimes more complex lexers need to set some local state. You can
+now do this in a `start` section. Eg:
+
+  start
+    space_seen = false
+
+This code will get expanded into the very top of the lexer method. Do
+note that this code gets run before _every token_, not just on
+initialization.
+
+==== Rule state can be inclusive or exclusive.
+
+This actually isn't new from rexical... It just wasn't really well
+documented.
+
+Exclusive states start with an uppercase letter (and are generally all
+uppercase). Inclusive states start with a lowercase letter. Exclusive
+states will _only_ try their own matchers. Inclusive states will also
+try any matcher w/o a state.
+
+In both cases, the order of generated matchers is strictly defined by
+the source file. Nothing is re-ordered, ever. Eg:
+
+  rules
+          /\d+/
+          /\s+/  # used in both nil-state and :rpn state
+          /[+-]/
+
+    :rpn  /\d+/  # won't hit, because of nil-state matcher above
+
+    :OP   /\s+/  # must define its own because no-nil-state matchers are used
+    :OP   /\d+/
+  end
+
+==== Default `do_parse` will dispatch to lex_xxx automatically.
+
+The method `do_parse` is generated for you and automatically
+dispatches off to user-defined methods named `lex_<token-type>` where
+token-type is the first value returned from any matching action. Eg:
+
+  rules
+    /\s*(\#.*)/  { [:comment, text] }
+
+  # elsewhere:
+
+  def lex_comment line
+    # do nothing
+  end
+
+==== `text` is passed in, or use `match[n]` or `matches`
+
+You can use the `text` variable for the entire match inside an action,
+or you can use `match[n]` to access a specific match group, or
+`matches` to get an array of all match groups. Eg:
+
+  /class ([\w:]+)(.*)/ { [:class, *matches] }
+
+In this case, the action will return something like: `[:class,
+"ClassName" "< Superclass"]`.
+
+==== You can override the scanner class by defining `scanner_class`.
+
+Oedipus will define the method `scanner_class` to return
+`StringScanner` unless you define one yourself. Because it uses
+reflection to figure out whether you've defined it or not, you may
+need to require the generated lexer AFTER you've defined
+`scanner_class`. Eg:
+
+  class MyLexer
+    # ...
+
+    def scanner_class
+      CustomStringScanner
+    end
+
+    # ...
+  end
+
+  require "my_lexer.rex"
+
+**NOTE:** I'm _totally_ open to better ways of doing this. I simply
+needed to get stuff done and this presented itself as _viable-enough_.
+
+=== Removals
+
+==== There is no command-line tool.
+
+There is no command-line tool. Instead, use the rake rule described
+above.
+
+==== There are only two options: debug and stub.
+
+All other options from rexical have been removed because they don't
+make sense in Oedipus.
+
+==== Probably others...
+
+It's hard to think about what I took out. What I added is plain as
+day. :P
+
+[TIN321]: http://www.cse.chalmers.se/edu/year/2011/course/TIN321/lectures/proglang-04.html
+[LLVM Tutorial]: http://llvm.org/docs/tutorial/LangImpl1.html#language
+
+== Requirements:
+
+* ruby version 1.8.x or later.
+
+== Install
+
+* sudo gem install rexical
+
+== License
+
+(The MIT License)
+
+Copyright (c) Ryan Davis, seattle.rb
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
