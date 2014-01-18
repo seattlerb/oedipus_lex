@@ -17,7 +17,8 @@ class OedipusLex
 
   DEFAULTS = {
     :debug    => false,
-    :do_parse => true,
+    :do_parse => false,
+    :lineno   => false,
     :stub     => false,
   }
 
@@ -166,7 +167,9 @@ class OedipusLex
 % starts.each do |s|
           <%= s %>
 % end
+% if option[:lineno] then
           self.lineno += 1 if ss.peek(1) == "\n"
+% end
 
           token = nil
 

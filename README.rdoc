@@ -47,6 +47,8 @@ resource for CS learning. Books... books are good. I like books.
   option_section  = /options?/ NL (option)*
   option          = /stub/i
                   | /debug/i
+                  | /do_parse/i
+                  | /lineno/i
 
   inner_section   = /inner/ NL (misc_line)*
 
@@ -109,7 +111,8 @@ testability.
 
 ==== Options
 
-There are currently only two options for Oedipus: "debug" and "stub".
+All options are opt-in and can be specified either in the grammar or
+via an options hash in `OedipusLex#initialize`.
 
 Specify `debug` to turn on basic tracing output.
 
@@ -117,6 +120,13 @@ Specify `stub` to create a generic handler that processes all files
 specified on the commandline with a rather generic handler. This makes
 it easy to get up and running before you have the rest of your system
 in place.
+
+Specify `do_parse` to generate a generic do_parse method that
+automatically dispatches off to `lex_<token_type>` methods.
+
+Specify `lineno` to generate automatic line number handling at the
+beginning of `next_token`. This was the default in 1.0.0 and you must
+now activate it.
 
 ==== Inner
 

@@ -13,6 +13,11 @@
 
 class OedipusLex
 
+option
+
+  do_parse
+  lineno
+
 macro
   ST    /(?:(:\S+|\w+\??))/
   RE    /(\/(?:\\.|[^\/])+\/[ion]?)/
@@ -37,6 +42,8 @@ rule
   :option       /\s+/                   # do nothing
   :option       /stub/i                 { [:option, text] }
   :option       /debug/i                { [:option, text] }
+  :option       /do_parse/i             { [:option, text] }
+  :option       /lineno/i               { [:option, text] }
 
   :inner        /.*/                    { [:inner, text] }
 
