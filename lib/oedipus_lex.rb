@@ -4,7 +4,7 @@ require "erb"
 require "oedipus_lex.rex"
 
 class OedipusLex
-  VERSION = "2.0.0"
+  VERSION = "2.1.0"
 
   attr_accessor :class_name
   attr_accessor :header

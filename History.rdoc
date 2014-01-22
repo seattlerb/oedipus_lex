@@ -1,3 +1,11 @@
+=== 2.1.0 / 2014-01-22
+
+* 3 minor enhancements:
+
+  * Added lineno and do_parse as options via grammar.
+  * All options are now opt-in. You might want to add do_parse and lineno to your grammar.
+  * New option lineno will turn on automatic line number handling at the top of next_token.
+
 === 2.0.0 / 2013-12-13
 
 * 1 major enhancement
