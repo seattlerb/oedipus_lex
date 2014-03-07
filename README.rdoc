@@ -59,8 +59,9 @@ resource for CS learning. Books... books are good. I like books.
   name            = /\w+/
   regexp          = /(\/(?:\\.|[^\/])+\/[io]?)/
 
-  rule_section    = /rules?/ NL (rule)*
+  rule_section    = /rules?/ NL (rule|group)*
   rule            = (state)? regexp (action)?
+  group           = /:/ regexp NL (rule)+
   state           = label
                   | predicate
   label           = /:\w+/

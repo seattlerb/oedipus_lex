@@ -1,16 +1,3 @@
-# [Header Part]
-# "class" Foo
-# ["option"
-#   [options] ]
-# ["inner"
-#   [methods] ]
-# ["macro"
-#   [macro-name  /pattern/[flags]] ]
-# "rule"
-#   [:state | method_name]  /pattern/[flags]  [{ code } | method_name | :state]
-# "end"
-# [Footer Part]
-
 class OedipusLex
 
 option
@@ -51,7 +38,10 @@ rule
 
   :macro        /\s+(\w+)\s+#{RE}/o     { [:macro, *matches] }
 
-  :rule         /\s*#{ST}?[\ \t]*#{RE}[\ \t]*#{ACT}?/o { [:rule, *matches] }
+  :rule         /\s*#{ST}?[\ \t]*#{RE}[\ \t]*#{ACT}?/o      { [:rule, *matches] }
+  :rule         /\s*:[\ \t]*#{RE}/o                         { [:grouphead, *matches] }
+  :group        /\s*\|\s*#{ST}?[\ \t]*#{RE}[\ \t]*#{ACT}?/o { [:group, *matches] }
+  :group        /\s*#{ST}?[\ \t]*#{RE}[\ \t]*#{ACT}?/o      { [:groupend, *matches] }
 
   :END          /\n+/                   # do nothing
   :END          /.*/                    { [:end, text] }

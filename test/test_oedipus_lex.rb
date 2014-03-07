@@ -420,6 +420,26 @@ class TestOedipusLex < Minitest::Test
     assert_match "when :ARG then", ruby
   end
 
+  def test_simple_scanner_group
+    src = <<-'REX'
+      class Calculator
+      rules
+
+        : /\d/
+        |     /\d+\.\d+/  { [:float, text.to_f] }
+        |     /\d+/       { [:int, text.to_i] }
+              /\s+/
+      end
+    REX
+
+    ruby = generate_lexer src
+
+    assert_match "when ss.check(/\\d/) then", ruby
+    assert_match "when text = ss.scan(/\\d+\\.\\d+/) then", ruby
+    assert_match "when text = ss.scan(/\\d+/) then", ruby
+    assert_match "end # group /\\d/", ruby
+  end
+
   def test_generator_start
     src = <<-'REX'
       class Calculator
