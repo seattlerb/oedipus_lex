@@ -69,4 +69,13 @@ task :clean do
   rm Dir["sample/*.rb"]
 end
 
+task :debug do
+  require "oedipus_lex"
+  f = ENV["F"]
+  rex = OedipusLex.new $rex_option
+  rex.parse_file f
+
+  puts rex.generate
+end
+
 # vim: syntax=ruby
