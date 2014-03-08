@@ -96,15 +96,15 @@ class OedipusLex
   end
 
   def generate
-    states                 = rules.map(&:first).compact.uniq
-    exclusives, inclusives = states.partition { |s| s =~ /^:[A-Z]/ }
+    filter = lambda { |r| Array === r.last ? nil : r.first }
+    _mystates = rules.map(&filter).flatten.compact.uniq
+    exclusives, inclusives = _mystates.partition { |s| s =~ /^:[A-Z]/ }
 
     # NOTE: doubling up assignment to remove unused var warnings in
     # ERB binding.
 
     all_states =
-      all_states = [[nil,                        # non-state # eg [[nil,
-                     *inclusives],               # incls     #      :a, :b],
+      all_states = [[nil, *inclusives],          # nil+incls # eg [[nil, :a],
                     *exclusives.map { |s| [s] }] # [excls]   #     [:A], [:B]]
 
     ERB.new(TEMPLATE, nil, "%").result binding
@@ -137,7 +137,9 @@ class OedipusLex
 %         end # start_state == state
   END_RULE
 
-  subrule = rule.gsub(/^ /, "   ").sub(/\*rule/, "*subrule")
+  subrule = rule.gsub(/^ /, "   ").
+    sub(/\*rule/, "*subrule"). # use subrules, not top level rules
+    sub(/start_state == state or/, "true or") # hack to prevent state checks
 
   TEMPLATE = <<-'REX'.sub(/SUBRULE/, subrule).sub(/RULE/, rule).gsub(/^ {6}/, '\1')
       #--
@@ -227,11 +229,10 @@ class OedipusLex
               case state
 % all_states.each do |the_states|
 %   exclusive = the_states.first != nil
-%   all_states, predicates = the_states.partition { |s| s.nil? or s.start_with? ":" }
-%   filtered_states = the_states.select { |s| s.nil? or s.start_with? ":" }
-              when <%= all_states.map { |s| s || "nil" }.join ", " %> then
+%   the_states, predicates = the_states.partition { |s| s.nil? or s.start_with? ":" }
+              when <%= the_states.map { |s| s || "nil" }.join ", " %> then
                 case
-%   all_states.each do |state|
+%   the_states.each do |state|
 %     rules.each do |rule|
 %       if Array === rule.last then
 %         group_re, *subrules = rule
