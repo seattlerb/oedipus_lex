@@ -70,6 +70,7 @@ class OedipusLex
   end
 
   def lex_grouphead(*vals)
+    end_group if group
     self.state = :group
     self.group = vals
   end

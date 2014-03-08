@@ -40,6 +40,7 @@ rule
 
   :rule         /\s*#{ST}?[\ \t]*#{RE}[\ \t]*#{ACT}?/o      { [:rule, *matches] }
   :rule         /\s*:[\ \t]*#{RE}/o                         { [:grouphead, *matches] }
+  :group        /\s*:[\ \t]*#{RE}/o                         { [:grouphead, *matches] }
   :group        /\s*\|\s*#{ST}?[\ \t]*#{RE}[\ \t]*#{ACT}?/o { [:group, *matches] }
   :group        /\s*#{ST}?[\ \t]*#{RE}[\ \t]*#{ACT}?/o      { [:groupend, *matches] }
 
