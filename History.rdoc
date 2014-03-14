@@ -1,3 +1,11 @@
+=== 2.2.0 / 2014-03-14
+
+* 3 minor enhancements:
+
+  * Added debug rake task.
+  * Added rule grouping. Naive benchmarking seems to show ~15% improvement in ruby_parser.
+  * Refactored rule handling part of template to its own variable.
+
 === 2.1.0 / 2014-01-22
 
 * 3 minor enhancements:
