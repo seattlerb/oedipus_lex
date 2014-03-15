@@ -451,7 +451,7 @@ day. :P
 
 == Install
 
-* sudo gem install rexical
+* sudo gem install oedipus_lex
 
 == License
 
