@@ -4,7 +4,7 @@ require "erb"
 require "oedipus_lex.rex"
 
 class OedipusLex
-  VERSION = "2.2.0"
+  VERSION = "2.2.1"
 
   attr_accessor :class_name
   attr_accessor :header
@@ -269,7 +269,7 @@ RULE
           p [state, token]
 % end
           token
-        end # def _next_token
+        end # def next_token
 % inners.each do |s|
         <%= s %>
 % end
