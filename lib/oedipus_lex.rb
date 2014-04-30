@@ -27,6 +27,10 @@ class OedipusLex
     attr_accessor :group
     alias :group? :group
 
+    def self.[] start, regexp, action
+      new start, regexp.inspect, action
+    end
+
     def initialize start_state, regexp, action
       super
       self.group = nil
@@ -62,10 +66,27 @@ class OedipusLex
 
       [cond, body]
     end
+
+    def pretty_print pp
+      pp.text "Rule"
+      pp.group 2, "[", "]" do
+        pp.pp start_state
+        pp.text ", "
+        pp.text regexp
+        pp.text ", "
+        pp.send(action ? :text : :pp, action)
+      end
+    end
   end
 
   class Group < Struct.new :regex, :rules
     alias :start_state :regex
+
+    def self.[] start, *subrules
+      r = new start.inspect
+      r.rules.concat subrules
+      r
+    end
 
     def initialize start
       super(start, [])
@@ -87,6 +108,22 @@ class OedipusLex
        "  end # group #{regex}"
       ]
     end
+
+    def pretty_print pp
+      pp.text "Group"
+      pp.group 2, "[", "]" do
+        pp.seplist([regex] + rules, lambda { pp.comma_breakable }, :each) { |v|
+          pp.send(String === v ? :text : :pp, v)
+        }
+      end
+    end
+  end
+
+  def self.[](name, *rules)
+    r = new
+    r.class_name = name
+    r.rules.concat rules
+    r
   end
 
   def initialize opts = {}
@@ -100,6 +137,26 @@ class OedipusLex
     self.rules   = []
     self.starts  = []
     self.group   = nil
+  end
+
+  def == o
+    (o.class      == self.class      and
+     o.class_name == self.class_name and
+     o.header     == self.header     and
+     o.ends       == self.ends       and
+     o.inners     == self.inners     and
+     o.macros     == self.macros     and
+     o.rules      == self.rules      and
+     o.starts     == self.starts)
+  end
+
+  def pretty_print pp
+    commas = lambda { pp.comma_breakable }
+
+    pp.text "Lexer"
+    pp.group 2, "[", "]" do
+      pp.seplist([class_name] + rules, commas, :each) { |v| pp.pp v }
+    end
   end
 
   def lex_class prefix, name

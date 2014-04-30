@@ -468,6 +468,42 @@ class TestOedipusLex < Minitest::Test
     assert_match "end # group /\\d/", ruby
   end
 
+  def test_scanner_inspect_slash_structure
+    src = <<-'REX'
+      class Calculator
+      rules
+
+        : /\d/
+        |     /\d+\.\d+/  { [:float, text.to_f] }
+        |     /\d+/       { [:int, text.to_i] }
+        : /\+/
+        | xx? /\+whatever/  { [:x, text] }
+        | :x  /\+\d+/       { [:y, text] }
+        | :x  /\+\w+/       { [:z, text] }
+              /\s+/
+      end
+    REX
+
+    rex = OedipusLex.new option
+    rex.parse cleanup src
+
+    lex = OedipusLex
+    group, rule = lex::Group, lex::Rule
+    expected = lex["Calculator",
+                   group[/\d/,
+                         rule[nil, /\d+\.\d+/, "{ [:float, text.to_f] }"],
+                         rule[nil, /\d+/, "{ [:int, text.to_i] }"]],
+                   group[/\+/,
+                         rule["xx?", /\+whatever/, "{ [:x, text] }"],
+                         rule[":x", /\+\d+/, "{ [:y, text] }"],
+                         rule[":x", /\+\w+/, "{ [:z, text] }"]],
+                   rule[nil, /\s+/, nil]]
+
+    assert_equal expected, rex
+  end
+
+  make_my_diffs_pretty!
+
   def test_generator_start
     src = <<-'REX'
       class Calculator
