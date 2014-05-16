@@ -1,3 +1,12 @@
+=== 2.3.0 / 2014-05-16
+
+* 4 minor enhancements:
+
+  * Added == method to lexer.
+  * Added pretty_print methods to lexer+rule+group.
+  * Added structural test so I can later make optimization changes cleanly.
+  * Refactored to (mostly) use an AST for code generation. Nukes 2 ERB templates.
+
 === 2.2.1 / 2014-04-02
 
 * 1 bug fix:
