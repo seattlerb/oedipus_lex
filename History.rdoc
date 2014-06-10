@@ -1,3 +1,9 @@
+=== 2.3.1 / 2014-06-09
+
+* 1 minor enhancement:
+
+  * If there is an encoding comment on the first line, put it above generated headers.
+
 === 2.3.0 / 2014-05-16
 
 * 4 minor enhancements:
