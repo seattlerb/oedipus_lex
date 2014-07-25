@@ -316,13 +316,13 @@ class OedipusLex
 % starts.each do |s|
           <%= s %>
 % end
-% if option[:lineno] then
-          self.lineno += 1 if ss.peek(1) == "\n"
-% end
 
           token = nil
 
           until ss.eos? or token do
+% if option[:lineno] then
+            self.lineno += 1 if ss.peek(1) == "\n"
+% end
             token =
               case state
 % all_states.each do |the_states|

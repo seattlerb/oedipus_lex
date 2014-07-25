@@ -741,4 +741,21 @@ class TestOedipusLex < Minitest::Test
 
     assert_lexer_error src, txt, "can not match (:B): 'a'"
   end
+
+  def test_incrementing_lineno_on_nil_token
+    src = <<-'REX'
+      class Calculator
+      option
+             lineno
+      rule
+             /\n/
+             /a/       { [:A, lineno] }
+      end
+    REX
+
+    txt = "\n\na"
+    exp = [[:A, 3]]
+
+    assert_lexer src, txt, exp
+  end
 end
