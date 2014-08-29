@@ -267,7 +267,9 @@ class OedipusLex
 % end
         class ScanError < StandardError ; end
 
+% if option[:lineno] then
         attr_accessor :lineno
+% end
         attr_accessor :filename
         attr_accessor :ss
         attr_accessor :state
@@ -309,7 +311,9 @@ class OedipusLex
 
         def parse str
           self.ss     = scanner_class.new str
+% if option[:lineno] then
           self.lineno = 1
+% end
           self.state  ||= nil
 
           do_parse
@@ -395,7 +399,8 @@ class OedipusLex
           begin
             rex.parse_file path
           rescue
-            $stderr.printf "%s:%d:%s\n", rex.filename, rex.lineno, $!.message
+            lineno = rex.respond_to?(:lineno) ? rex.lineno : -1
+            $stderr.printf "%s:%d:%s\n", rex.filename, lineno, $!.message
             exit 1
           end
         end
