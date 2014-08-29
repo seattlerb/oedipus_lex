@@ -260,6 +260,30 @@ class TestOedipusLex < Minitest::Test
     assert_match "[:op, \"+\"]", out
   end
 
+  def test_column
+    src = <<-'REX'
+      class Calculator
+      rule
+              /\d+/       { [:number, text.to_i, lineno, column] }
+              /\s+/
+              /[+-]/      { [:op, text, lineno, column] }
+      end
+    REX
+
+    txt = "1 + 2\n+ 30"
+
+    exp = [[:number, 1,   1, 0],
+           [:op,     "+", 1, 2],
+           [:number, 2,   1, 4],
+           [:op,     "+", 2, 0],
+           [:number, 30,  2, 2]]
+
+    option[:column] = true
+    option[:lineno] = true
+
+    assert_lexer src, txt, exp
+  end
+
   def test_simple_scanner_debug_src
     src = <<-'REX'
       class Calculator

@@ -20,6 +20,7 @@ class OedipusLex
     :debug    => false,
     :do_parse => false,
     :lineno   => false,
+    :column   => false,
     :stub     => false,
   }
 
@@ -283,6 +284,15 @@ class OedipusLex
           yield
         end
 
+% if option[:column] then
+        attr_accessor :old_pos
+
+        def column
+          idx = ss.string.rindex("\n", old_pos) || -1
+          old_pos - idx - 1
+        end
+% end
+
 % if option[:do_parse] then
         def do_parse
           while token = next_token do
@@ -322,6 +332,9 @@ class OedipusLex
           until ss.eos? or token do
 % if option[:lineno] then
             self.lineno += 1 if ss.peek(1) == "\n"
+% end
+% if option[:column] then
+            self.old_pos = ss.pos
 % end
             token =
               case state
