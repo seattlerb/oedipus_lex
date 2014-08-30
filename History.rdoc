@@ -1,3 +1,13 @@
+=== 2.4.0 / 2014-08-29
+
+* 1 minor enhancement:
+
+  * Added column option & accessor.
+
+* 1 bug fix:
+
+  * lineno shouldn't be visible at all if the option isn't on.
+
 === 2.3.2 / 2014-08-06
 
 * 1 bug fix:
