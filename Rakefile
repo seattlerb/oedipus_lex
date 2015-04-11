@@ -3,8 +3,6 @@
 require "rubygems"
 require "hoe"
 
-Hoe.plugin :debugging
-Hoe.plugin :git
 Hoe.plugin :isolate
 Hoe.plugin :seattlerb
 
@@ -14,6 +12,10 @@ Hoe.spec "oedipus_lex" do
 
   self.readme_file      = "README.rdoc"
   self.history_file     = "History.rdoc"
+end
+
+Hoe.bad_plugins.each do |bad|
+  warn "BAD: Hoe.plugin :#{bad}"
 end
 
 task :bootstrap do
@@ -76,6 +78,11 @@ task :debug do
   rex.parse_file f
 
   puts rex.generate
+end
+
+task :wtf => :isolate do
+  puts `~/.rbenv/versions/2.2.0/bin/ruby -S gem env`
+  puts `~/.rbenv/versions/2.2.0/bin/ruby -S gem list`
 end
 
 # vim: syntax=ruby
