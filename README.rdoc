@@ -19,7 +19,7 @@ At the very least, you need to add slashes to all your regexps.
 
 Oedipus, like rexical, is based primarily on generating code much like
 you would a hand-written lexer. It is _not_ a table or hash driven
-lexer. It use StrScanner within a multi-level case statement. As such,
+lexer. It uses StrScanner within a multi-level case statement. As such,
 Oedipus matches on the _first_ match, not the longest (like lex and
 its ilk).
 
