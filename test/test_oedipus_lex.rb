@@ -457,7 +457,7 @@ class TestOedipusLex < Minitest::Test
 
     ruby = generate_lexer src
 
-    assert_match "when ss.check(/\\d/) then", ruby
+    assert_match "when ss.match?(/\\d/) then", ruby
     assert_match "when text = ss.scan(/\\d+\\.\\d+/) then", ruby
     assert_match "when text = ss.scan(/\\d+/) then", ruby
     assert_match "end # group /\\d/", ruby
@@ -480,12 +480,12 @@ class TestOedipusLex < Minitest::Test
 
     ruby = generate_lexer src
 
-    assert_match "when ss.check(/\\d/) then", ruby
+    assert_match "when ss.match?(/\\d/) then", ruby
     assert_match "when text = ss.scan(/\\d+\\.\\d+/) then", ruby
     assert_match "when text = ss.scan(/\\d+/) then", ruby
     assert_match "end # group /\\d/", ruby
 
-    assert_match "when ss.check(/\\+/) then", ruby
+    assert_match "when ss.match?(/\\+/) then", ruby
     assert_match "when xx? && (text = ss.scan(/\\+whatever/)) then", ruby
     assert_match "when (state == :x) && (text = ss.scan(/\\+\\d+/)) then", ruby
     assert_match "end # group /\\d/", ruby
