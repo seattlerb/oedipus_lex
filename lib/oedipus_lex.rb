@@ -55,7 +55,7 @@ class OedipusLex
           "  action #{action}"
         when /^:/, "nil" then
           "  [:state, #{action}]"
-        else
+        else # plain method name
           uses_text = true
           "  #{action} text"
         end
@@ -66,7 +66,7 @@ class OedipusLex
                check
              elsif start_state =~ /^:/ then
                "(state == #{start_state}) && (#{check})"
-             else
+             else # predicate method
                "#{start_state} && (#{check})"
              end
 
