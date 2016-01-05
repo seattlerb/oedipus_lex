@@ -44,28 +44,33 @@ class OedipusLex
         start_state == state or
         (state.nil? and predicates.include? start_state)
 
-      cond =
-        if exclusive or not start_state then
-          "when text = ss.scan(#{regexp}) then"
-        elsif start_state =~ /^:/ then
-          "when (state == #{start_state}) && (text = ss.scan(#{regexp})) then"
-        else
-          "when #{start_state} && (text = ss.scan(#{regexp})) then"
-        end
+      uses_text = false
 
       body =
         case action
         when nil, false then
           "  # do nothing"
         when /^\{/ then
+          uses_text = action =~ /\btext\b/
           "  action #{action}"
         when /^:/, "nil" then
           "  [:state, #{action}]"
         else
+          uses_text = true
           "  #{action} text"
         end
 
-      [cond, body]
+      check = uses_text ? "text = ss.scan(#{regexp})" : "ss.skip(#{regexp})"
+
+      cond = if exclusive or not start_state then
+               check
+             elsif start_state =~ /^:/ then
+               "(state == #{start_state}) && (#{check})"
+             else
+               "#{start_state} && (#{check})"
+             end
+
+      ["when #{cond} then", body]
     end
 
     def pretty_print pp
@@ -100,7 +105,7 @@ class OedipusLex
 
     def to_ruby state, predicates, exclusive
       [
-       "when ss.check(#{regex}) then",
+       "when ss.match?(#{regex}) then",
        "  case",
        rules.map { |subrule|
          s = subrule.to_ruby(state, predicates, exclusive)
