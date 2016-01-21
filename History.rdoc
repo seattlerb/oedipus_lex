@@ -1,3 +1,9 @@
+=== 2.4.1 / 2016-01-21
+
+* 1 minor enhancement:
+
+  * Use `skip` and `match?` instead of `scan` and `check`. Better on GC. (presidentbeef)
+
 === 2.4.0 / 2014-08-29
 
 * 1 minor enhancement:
