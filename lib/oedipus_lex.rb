@@ -298,8 +298,8 @@ class OedipusLex
           idx = ss.string.rindex("\n", old_pos) || -1
           old_pos - idx - 1
         end
-% end
 
+% end
 % if option[:do_parse] then
         def do_parse
           while token = next_token do
