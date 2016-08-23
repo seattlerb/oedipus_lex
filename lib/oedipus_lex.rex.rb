@@ -96,6 +96,8 @@ class OedipusLex
             action { [:option, text] }
           when (state == :option) && (text = ss.scan(/lineno/i)) then
             action { [:option, text] }
+          when (state == :option) && (text = ss.scan(/column/i)) then
+            action { [:option, text] }
           when (state == :inner) && (text = ss.scan(/.*/)) then
             action { [:inner, text] }
           when (state == :start) && (text = ss.scan(/.*/)) then

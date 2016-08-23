@@ -31,6 +31,7 @@ rule
   :option       /debug/i                { [:option, text] }
   :option       /do_parse/i             { [:option, text] }
   :option       /lineno/i               { [:option, text] }
+  :option       /column/i               { [:option, text] }
 
   :inner        /.*/                    { [:inner, text] }
 
