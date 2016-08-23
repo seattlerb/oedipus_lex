@@ -49,6 +49,7 @@ resource for CS learning. Books... books are good. I like books.
                   | /debug/i
                   | /do_parse/i
                   | /lineno/i
+                  | /column/i
 
   inner_section   = /inner/ NL (misc_line)*
 
@@ -128,6 +129,8 @@ automatically dispatches off to `lex_<token_type>` methods.
 Specify `lineno` to generate automatic line number handling at the
 beginning of `next_token`. This was the default in 1.0.0 and you must
 now activate it.
+
+Specify `column` to generate automatic column number handling.
 
 ==== Inner
 
