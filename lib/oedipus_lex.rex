@@ -4,6 +4,7 @@ option
 
   do_parse
   lineno
+  column
 
 macro
   ST    /(?:(:\S+|\w+\??))/

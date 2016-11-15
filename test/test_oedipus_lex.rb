@@ -82,6 +82,26 @@ class TestOedipusLex < Minitest::Test
     assert_equal expected_msg, e.message
   end
 
+  def assert_token_error grammar, input, expected_msg
+    _, mod = eval_lexer grammar
+
+    calc = mod::Calculator.new
+
+    def calc.do_parse
+      tokens = []
+      while token = next_token
+        tokens << token
+      end
+      tokens
+    end
+
+    e = assert_raises mod::Calculator::LexerError do
+      calc.parse input
+    end
+
+    assert_equal expected_msg, e.message
+  end
+
   def test_simple_scanner
     src = <<-'REX'
       class Calculator
@@ -136,7 +156,7 @@ class TestOedipusLex < Minitest::Test
       end
     REX
 
-    assert_generate_error src, "can not match (:rule): '"
+    assert_generate_error src, "can not match (:rule) at <input>:4:0: '"
   end
 
   def test_simple_scanner_macro
@@ -760,9 +780,50 @@ class TestOedipusLex < Minitest::Test
     assert_lexer src, txt, exp
 
     txt = "aa"
-    exp = [[:A, 'a'], [:B, 'b'], [:A, 'a'], [:B, 'b'], [:A, 'a']]
 
-    assert_lexer_error src, txt, "can not match (:B): 'a'"
+    assert_lexer_error src, txt, "can not match (:B) at <input>: 'a'"
+  end
+
+  def test_error_undefined_state
+    src = <<-'REX'
+      class Calculator
+      rule
+             /a/       { self.state = :C  ; [:A, text] }
+        :B   /b/       { self.state = nil ; [:B, text] }
+      end
+    REX
+
+    txt = "aa"
+
+    assert_lexer_error src, txt, "undefined state at <input>: 'C'"
+  end
+
+  def test_error_bad_token
+    src = <<-'REX'
+      class Calculator
+      rule
+             /a/       { self.state = :B  ; :A }
+        :B   /b/       { self.state = nil ; [:B, text] }
+      end
+    REX
+
+    txt = "aa"
+
+    assert_token_error src, txt, "bad lexical result at <input>: :A"
+  end
+
+  def test_error_bad_token_size
+    src = <<-'REX'
+      class Calculator
+      rule
+             /a/       { self.state = :B  ; [:A] }
+        :B   /b/       { self.state = nil ; [:B, text] }
+      end
+    REX
+
+    txt = "aa"
+
+    assert_token_error src, txt, "bad lexical result at <input>: [:A]"
   end
 
   def test_incrementing_lineno_on_nil_token
@@ -780,5 +841,37 @@ class TestOedipusLex < Minitest::Test
     exp = [[:A, 3]]
 
     assert_lexer src, txt, exp
+  end
+
+  def assert_location exp, option = {}
+    self.option = option
+
+    src = "class Calculator\nrule\n  /\\d+/ { [:number, text.to_i] }\nend\n"
+
+    _, mod = eval_lexer src
+
+    calc = mod::Calculator.new
+    def calc.do_parse
+      [next_token]
+    end
+
+    calc.filename = option[:filename] if option[:filename]
+    calc.parse "42"
+
+    assert_equal exp, calc.location
+  end
+
+  def test_location
+    t = true
+
+    assert_location "<input>"
+    assert_location "<input>:1",   :lineno => t
+    assert_location "<input>:?:0", :column => t
+    assert_location "<input>:1:0", :lineno => t, :column => t
+
+    assert_location "blah",     :filename => "blah"
+    assert_location "blah:1",   :filename => "blah", :lineno => t
+    assert_location "blah:?:0", :filename => "blah", :column => t
+    assert_location "blah:1:0", :filename => "blah", :lineno => t, :column => t
   end
 end

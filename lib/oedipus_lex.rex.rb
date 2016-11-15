@@ -12,7 +12,8 @@ class OedipusLex
   RE  = /(\/(?:\\.|[^\/])+\/[ion]?)/
   ACT = /(\{.*|:?\w+)/
 
-  class ScanError < StandardError ; end
+  class LexerError < StandardError ; end
+  class ScanError < LexerError ; end
 
   attr_accessor :lineno
   attr_accessor :filename
@@ -29,6 +30,13 @@ class OedipusLex
 
   def action
     yield
+  end
+
+  attr_accessor :old_pos
+
+  def column
+    idx = ss.string.rindex("\n", old_pos) || -1
+    old_pos - idx - 1
   end
 
   def do_parse
@@ -58,12 +66,21 @@ class OedipusLex
     end
   end
 
+  def location
+    [
+      (filename || "<input>"),
+      lineno,
+      column,
+    ].compact.join(":")
+  end
+
   def next_token
 
     token = nil
 
     until ss.eos? or token do
       self.lineno += 1 if ss.peek(1) == "\n"
+      self.old_pos = ss.pos
       token =
         case state
         when nil, :option, :inner, :start, :macro, :rule, :group then
@@ -116,7 +133,7 @@ class OedipusLex
             action { [:groupend, *matches] }
           else
             text = ss.string[ss.pos .. -1]
-            raise ScanError, "can not match (#{state.inspect}): '#{text}'"
+            raise ScanError, "can not match (#{state.inspect}) at #{location}: '#{text}'"
           end
         when :END then
           case
@@ -126,16 +143,16 @@ class OedipusLex
             action { [:end, text] }
           else
             text = ss.string[ss.pos .. -1]
-            raise ScanError, "can not match (#{state.inspect}): '#{text}'"
+            raise ScanError, "can not match (#{state.inspect}) at #{location}: '#{text}'"
           end
         else
-          raise ScanError, "undefined state: '#{state}'"
+          raise ScanError, "undefined state at #{location}: '#{state}'"
         end # token = case state
 
       next unless token # allow functions to trigger redo w/ nil
     end # while
 
-    raise "bad lexical result: #{token.inspect}" unless
+    raise LexerError, "bad lexical result at #{location}: #{token.inspect}" unless
       token.nil? || (Array === token && token.size >= 2)
 
     # auto-switch state

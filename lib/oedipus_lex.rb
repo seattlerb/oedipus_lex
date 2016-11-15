@@ -270,7 +270,8 @@ class OedipusLex
 %   end
 
 % end
-        class ScanError < StandardError ; end
+        class LexerError < StandardError ; end
+        class ScanError < LexerError ; end
 
 % if option[:lineno] then
         attr_accessor :lineno
@@ -331,6 +332,20 @@ class OedipusLex
           end
         end
 
+        def location
+          [
+            (filename || "<input>"),
+% if option[:lineno] then
+            lineno,
+% elsif option[:column] then
+            "?",
+% end
+% if option[:column] then
+            column,
+% end
+          ].compact.join(":")
+        end
+
         def next_token
 % starts.each do |s|
           <%= s %>
@@ -358,17 +373,17 @@ class OedipusLex
 %   end # the_states.each
                 else
                   text = ss.string[ss.pos .. -1]
-                  raise ScanError, "can not match (#{state.inspect}): '#{text}'"
+                  raise ScanError, "can not match (#{state.inspect}) at #{location}: '#{text}'"
                 end
 % end # all_states
               else
-                raise ScanError, "undefined state: '#{state}'"
+                raise ScanError, "undefined state at #{location}: '#{state}'"
               end # token = case state
 
             next unless token # allow functions to trigger redo w/ nil
           end # while
 
-          raise "bad lexical result: #{token.inspect}" unless
+          raise LexerError, "bad lexical result at #{location}: #{token.inspect}" unless
             token.nil? || (Array === token && token.size >= 2)
 
           # auto-switch state
