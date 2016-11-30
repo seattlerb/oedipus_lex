@@ -1,3 +1,18 @@
+=== 2.5.0 / 2016-11-30
+
+* 5 minor enhancements:
+
+  * Added #location to generated template, provides file:line:column per options.
+  * Added LexerError and made ScanError subclass it.
+  * Added column option.
+  * Errors try to provide location now.
+  * Re-bootstrapped.
+
+* 2 bug fixes:
+
+  * Fixed some whitespace generation when using :column.
+  * Fixed wiring on column. (steakknife)
+
 === 2.4.1 / 2016-01-21
 
 * 1 minor enhancement:
