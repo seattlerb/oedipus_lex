@@ -241,7 +241,13 @@ class OedipusLex
     encoding = header.shift if header.first =~ /encoding:/
     encoding ||= "# encoding: UTF-8"
 
-    ERB.new(TEMPLATE, nil, "%").result binding
+    erb = if RUBY_VERSION >= "2.6.0" then
+            ERB.new(TEMPLATE, trim_mode:"%")
+          else
+            ERB.new(TEMPLATE, nil, "%")
+          end
+
+    erb.result binding
   end
 
   TEMPLATE = <<-'REX'.gsub(/^ {6}/, '')
