@@ -3,20 +3,85 @@ require 'strscan'
 require "erb"
 require "oedipus_lex.rex"
 
+##
+# Oedipus Lex is a lexer generator in the same family as Rexical and
+# Rex. Oedipus Lex is my independent lexer fork of Rexical. Rexical
+# was in turn a fork of Rex. We've been unable to contact the author
+# of rex in order to take it over, fix it up, extend it, and relicense
+# it to MIT. So, Oedipus was written clean-room in order to bypass
+# licensing constraints (and because bootstrapping is fun).
+#
+# Oedipus brings a lot of extras to the table and at this point is
+# only historically related to rexical. The syntax has changed enough
+# that any rexical lexer will have to be tweaked to work inside of
+# oedipus. At the very least, you need to add slashes to all your
+# regexps.
+#
+# Oedipus, like rexical, is based primarily on generating code much
+# like you would a hand-written lexer. It is _not_ a table or hash
+# driven lexer. It uses StrScanner within a multi-level case
+# statement. As such, Oedipus matches on the _first_ match, not the
+# longest (like lex and its ilk).
+#
+# This documentation is not meant to bypass any prerequisite knowledge
+# on lexing or parsing. If you'd like to study the subject in further
+# detail, please try [TIN321] or the [LLVM Tutorial] or some other
+# good resource for CS learning. Books... books are good. I like
+# books.
+
 class OedipusLex
-  VERSION = "2.5.0"
+  VERSION = "2.5.0" # :nodoc:
+
+  ##
+  # The class name to generate.
 
   attr_accessor :class_name
+
+  ##
+  # An array of header lines to have before the lexer class.
+
   attr_accessor :header
+
+  ##
+  # An array of lines to have after the lexer class.
+
   attr_accessor :ends
+
+  ##
+  # An array of lines to have inside (but at the bottom of) the lexer
+  # class.
+
   attr_accessor :inners
+
+  ##
+  # An array of name/regexp pairs to generate constants inside the
+  # lexer class.
+
   attr_accessor :macros
+
+  ##
+  # A hash of options for the code generator. See README.rdoc for
+  # supported options.
+
   attr_accessor :option
+
+  ##
+  # The rules for the lexer.
+
   attr_accessor :rules
+
+  ##
+  # An array of lines of code to generate into the top of the lexer
+  # (next_token) loop.
+
   attr_accessor :starts
+
+  ##
+  # An array of all the groups within the lexer rules.
+
   attr_accessor :group
 
-  DEFAULTS = {
+  DEFAULTS = { # :nodoc:
     :debug    => false,
     :do_parse => false,
     :lineno   => false,
@@ -24,20 +89,38 @@ class OedipusLex
     :stub     => false,
   }
 
+  ##
+  # A Rule represents the main component of Oedipus Lex. These are the
+  # things that "get stuff done" at the lexical level. They consist of:
+  #
+  # + an optional required start state symbol or predicate method name
+  # + a regexp to match on
+  # + an optional action method or block
+
   class Rule < Struct.new :start_state, :regexp, :action
+    ##
+    # What group this rule is in, if any.
+
     attr_accessor :group
-    alias :group? :group
+
+    alias :group? :group # :nodoc:
+
+    ##
+    # A simple constructor
 
     def self.[] start, regexp, action
       new start, regexp.inspect, action
     end
 
-    def initialize start_state, regexp, action
+    def initialize start_state, regexp, action # :nodoc:
       super
       self.group = nil
     end
 
     undef_method :to_a
+
+    ##
+    # Generate equivalent ruby code for the rule.
 
     def to_ruby state, predicates, exclusive
       return unless group? or
@@ -73,7 +156,7 @@ class OedipusLex
       ["when #{cond} then", body]
     end
 
-    def pretty_print pp
+    def pretty_print pp # :nodoc:
       pp.text "Rule"
       pp.group 2, "[", "]" do
         pp.pp start_state
@@ -85,8 +168,17 @@ class OedipusLex
     end
   end
 
+  ##
+  # A group allows you to group up multiple rules under a single
+  # regular prefix expression, allowing optimized code to be generated
+  # that skips over all actions if the prefix isn't matched.
+
   class Group < Struct.new :regex, :rules
     alias :start_state :regex
+
+    ##
+    # A convenience method to create a new group with a +start+ and
+    # given +subrules+.
 
     def self.[] start, *subrules
       r = new start.inspect
@@ -94,16 +186,19 @@ class OedipusLex
       r
     end
 
-    def initialize start
+    def initialize start # :nodoc:
       super(start, [])
     end
+
+    ##
+    # Add a rule to this group.
 
     def << rule
       rules << rule
       nil
     end
 
-    def to_ruby state, predicates, exclusive
+    def to_ruby state, predicates, exclusive # :nodoc:
       [
        "when ss.match?(#{regex}) then",
        "  case",
@@ -115,7 +210,7 @@ class OedipusLex
       ]
     end
 
-    def pretty_print pp
+    def pretty_print pp # :nodoc:
       pp.text "Group"
       pp.group 2, "[", "]" do
         pp.seplist([regex] + rules, lambda { pp.comma_breakable }, :each) { |v|
@@ -125,6 +220,10 @@ class OedipusLex
     end
   end
 
+  ##
+  # A convenience method to create a new lexer with a +name+ and given
+  # +rules+.
+
   def self.[](name, *rules)
     r = new
     r.class_name = name
@@ -132,7 +231,7 @@ class OedipusLex
     r
   end
 
-  def initialize opts = {}
+  def initialize opts = {} # :nodoc:
     self.option     = DEFAULTS.merge opts
     self.class_name = nil
 
@@ -145,7 +244,7 @@ class OedipusLex
     self.group   = nil
   end
 
-  def == o
+  def == o # :nodoc:
     (o.class      == self.class      and
      o.class_name == self.class_name and
      o.header     == self.header     and
@@ -156,7 +255,7 @@ class OedipusLex
      o.starts     == self.starts)
   end
 
-  def pretty_print pp
+  def pretty_print pp # :nodoc:
     commas = lambda { pp.comma_breakable }
 
     pp.text "Lexer"
@@ -165,38 +264,65 @@ class OedipusLex
     end
   end
 
+  ##
+  # Process a +class+ lexeme.
+
   def lex_class prefix, name
     header.concat prefix.split(/\n/)
     self.class_name = name
   end
 
+  ##
+  # Process a +comment+ lexeme.
+
   def lex_comment line
     # do nothing
   end
+
+  ##
+  # Process an +end+ lexeme.
 
   def lex_end line
     ends << line
   end
 
+  ##
+  # Process an +inner+ lexeme.
+
   def lex_inner line
     inners << line
   end
+
+  ##
+  # Process a +start+ lexeme.
 
   def lex_start line
     starts << line.strip
   end
 
+  ##
+  # Process a +macro+ lexeme.
+
   def lex_macro name, value
     macros << [name, value]
   end
+
+  ##
+  # Process an +option+ lexeme.
 
   def lex_option option
     self.option[option.to_sym] = true
   end
 
+  ##
+  # Process a +X+ lexeme.
+
   def lex_rule start_state, regexp, action = nil
     rules << Rule.new(start_state, regexp, action)
   end
+
+  ##
+  # Process a +group head+ lexeme.
 
   def lex_grouphead re
     end_group if group
@@ -204,11 +330,17 @@ class OedipusLex
     self.group = Group.new re
   end
 
+  ##
+  # Process a +group+ lexeme.
+
   def lex_group start_state, regexp, action = nil
     rule = Rule.new(start_state, regexp, action)
     rule.group = group
     self.group << rule
   end
+
+  ##
+  # End a group.
 
   def end_group
     rules << group
@@ -216,15 +348,24 @@ class OedipusLex
     self.state = :rule
   end
 
+  ##
+  # Process the end of a +group+ lexeme.
+
   def lex_groupend start_state, regexp, action = nil
     end_group
     lex_rule start_state, regexp, action
   end
 
+  ##
+  # Process a +state+ lexeme.
+
   def lex_state new_state
     end_group if group
     # do nothing -- lexer switches state for us
   end
+
+  ##
+  # Generate the lexer.
 
   def generate
     filter = lambda { |r| Rule === r && r.start_state || nil }
@@ -250,6 +391,8 @@ class OedipusLex
     erb.result binding
   end
 
+  # :stopdoc:
+
   TEMPLATE = <<-'REX'.gsub(/^ {6}/, '')
       <%= encoding %>
       #--
@@ -266,27 +409,51 @@ class OedipusLex
 %   end
 
 % end
+
+      ##
+      # The generated lexer <%= class_name %>
+
       class <%= class_name %>
         require 'strscan'
 
 % unless macros.empty? then
+        # :stopdoc:
 %   max = macros.map { |(k,_)| k.size }.max
 %   macros.each do |(k,v)|
         <%= "%-#{max}s = %s" % [k, v] %>
 %   end
-
+        # :startdoc:
 % end
+        # :stopdoc:
         class LexerError < StandardError ; end
         class ScanError < LexerError ; end
+        # :startdoc:
 
 % if option[:lineno] then
+        ##
+        # The current line number.
+
         attr_accessor :lineno
 % end
+        ##
+        # The file name / path
+
         attr_accessor :filename
+
+        ##
+        # The StringScanner for this lexer.
+
         attr_accessor :ss
+
+        ##
+        # The current lexical state.
+
         attr_accessor :state
 
         alias :match :ss
+
+        ##
+        # The match groups for the current scan.
 
         def matches
           m = (1..9).map { |i| ss[i] }
@@ -294,12 +461,21 @@ class OedipusLex
           m
         end
 
+        ##
+        # Yields on the current action.
+
         def action
           yield
         end
 
 % if option[:column] then
+        ##
+        # The previous position. Only available if the :column option is on.
+
         attr_accessor :old_pos
+
+        ##
+        # The current column. Only available if the :column option is on.
 
         def column
           idx = ss.string.rindex("\n", old_pos) || -1
@@ -308,6 +484,9 @@ class OedipusLex
 
 % end
 % if option[:do_parse] then
+        ##
+        # Parse the file by getting all tokens and calling lex_+type+ on them.
+
         def do_parse
           while token = next_token do
             type, *vals = token
@@ -317,9 +496,16 @@ class OedipusLex
         end
 
 % end
+
+        ##
+        # The current scanner class. Must be overridden in subclasses.
+
         def scanner_class
           StringScanner
         end unless instance_methods(false).map(&:to_s).include?("scanner_class")
+
+        ##
+        # Parse the given string.
 
         def parse str
           self.ss     = scanner_class.new str
@@ -331,12 +517,18 @@ class OedipusLex
           do_parse
         end
 
+        ##
+        # Read in and parse the file at +path+.
+
         def parse_file path
           self.filename = path
           open path do |f|
             parse f.read
           end
         end
+
+        ##
+        # The current location in the parse.
 
         def location
           [
@@ -351,6 +543,9 @@ class OedipusLex
 % end
           ].compact.join(":")
         end
+
+        ##
+        # Lex the next token.
 
         def next_token
 % starts.each do |s|
@@ -433,6 +628,8 @@ class OedipusLex
       end
 % end
   REX
+
+  # :startdoc:
 end
 
 if $0 == __FILE__ then
