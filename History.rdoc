@@ -1,3 +1,7 @@
+=== master
+
+  * speedup of column position computation. It went from roughly 10s to 2s for a big file
+
 === 2.5.1 / 2019-06-03
 
 * 1 minor enhancement:
