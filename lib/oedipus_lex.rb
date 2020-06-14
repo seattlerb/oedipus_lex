@@ -147,7 +147,7 @@ class OedipusLex
 
       cond = if exclusive or not start_state then
                check
-             elsif start_state =~ /^:/ then
+             elsif /^:/.match?(start_state) then
                "(state == #{start_state}) && (#{check})"
              else # predicate method
                "#{start_state} && (#{check})"
@@ -359,7 +359,7 @@ class OedipusLex
   ##
   # Process a +state+ lexeme.
 
-  def lex_state new_state
+  def lex_state _new_state
     end_group if group
     # do nothing -- lexer switches state for us
   end
@@ -379,7 +379,7 @@ class OedipusLex
       all_states = [[nil, *inclusives],          # nil+incls # eg [[nil, :a],
                     *exclusives.map { |s| [s] }] # [excls]   #     [:A], [:B]]
 
-    encoding = header.shift if header.first =~ /encoding:/
+    encoding = header.shift if /encoding:/.match?(header.first)
     encoding ||= "# encoding: UTF-8"
 
     erb = if RUBY_VERSION >= "2.6.0" then
@@ -475,11 +475,16 @@ class OedipusLex
         attr_accessor :old_pos
 
         ##
-        # The current column. Only available if the :column option is on.
+        # The position of the start of the current line. Only available if the
+        # :column option is on.
 
+        attr_accessor :start_of_current_line_pos
+
+        ##
+        # The current column, starting at 0. Only available if the
+        # :column option is on.
         def column
-          idx = ss.string.rindex("\n", old_pos) || -1
-          old_pos - idx - 1
+          old_pos - start_of_current_line_pos
         end
 
 % end
@@ -511,6 +516,9 @@ class OedipusLex
           self.ss     = scanner_class.new str
 % if option[:lineno] then
           self.lineno = 1
+% end
+% if option[:column] then
+          self.start_of_current_line_pos = 0
 % end
           self.state  ||= nil
 
@@ -556,7 +564,13 @@ class OedipusLex
 
           until ss.eos? or token do
 % if option[:lineno] then
-            self.lineno += 1 if ss.peek(1) == "\n"
+            if ss.peek(1) == "\n"
+              self.lineno += 1
+% if option[:column] then
+              # line starts 1 position after the newline
+              self.start_of_current_line_pos = ss.pos + 1
+% end
+            end
 % end
 % if option[:column] then
             self.old_pos = ss.pos
