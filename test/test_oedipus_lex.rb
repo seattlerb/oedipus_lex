@@ -765,6 +765,19 @@ class TestOedipusLex < Minitest::Test
     assert_match 'ss.scan(/#{X}/)', source
   end
 
+  def test_parses_empty_regexp
+    source = generate_lexer %q{
+      class Foo
+      rule
+              /\w+/ { @state = :ARG; emit :tFUNCTION_CALL }
+        :ARG  /\(/  { @state = nil; emit :tARG_LIST_BEGIN }
+        :ARG  //    { @state = nil }
+      end
+    }
+
+    assert_match 'ss.skip(//)', source
+  end
+
   def test_changing_state_during_lexing
     src = <<-'REX'
       class Calculator
