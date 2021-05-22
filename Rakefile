@@ -12,6 +12,8 @@ Hoe.spec "oedipus_lex" do
 
   self.readme_file      = "README.rdoc"
   self.history_file     = "History.rdoc"
+
+  require_ruby_version [">= 2.4", "< 4.0"]
 end
 
 Hoe.bad_plugins.each do |bad|
