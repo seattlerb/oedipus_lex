@@ -1,3 +1,9 @@
+=== 2.5.3 / 2021-05-29
+
+* 1 bug fix:
+
+  * Added require_ruby_version >= 2.4 to gemspec
+
 === 2.5.2 / 2020-06-14
 
 * 1 minor enhancement:
