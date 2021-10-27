@@ -565,7 +565,7 @@ class OedipusLex
 
           until ss.eos? or token do
 % if option[:lineno] then
-            if ss.peek(1) == "\n"
+            if ss.check(/\n/) then
               self.lineno += 1
 % if option[:column] then
               # line starts 1 position after the newline
