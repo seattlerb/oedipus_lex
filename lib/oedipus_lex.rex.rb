@@ -14,7 +14,7 @@ class OedipusLex
 
   # :stopdoc:
   ST  = /(?:(:\S+|\w+\??))/
-  RE  = /(\/(?:\\.|[^\/])+\/[ion]?)/
+  RE  = /(\/(?:\\.|[^\/])*\/[ion]?)/
   ACT = /(\{.*|:?\w+)/
   # :startdoc:
   # :stopdoc:
