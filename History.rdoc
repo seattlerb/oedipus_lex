@@ -1,3 +1,14 @@
+=== 2.6.0 / 2021-10-27
+
+* 2 minor enhancements:
+
+  * Add frozen_string_literal comment to generated lexers.
+  * Allow empty regex. (marcandre)
+
+* 1 bug fix:
+
+  * Switched from peek(1) == "\n" to check(/\n/) to save a ton of strings.
+
 === 2.5.3 / 2021-05-29
 
 * 1 bug fix:
