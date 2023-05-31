@@ -1,3 +1,9 @@
+=== 2.6.1 / 2023-05-31
+
+* 1 bug fix:
+
+  * Bumped minimum supported version of ruby to 2.7
+
 === 2.6.0 / 2021-10-27
 
 * 2 minor enhancements:

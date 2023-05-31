@@ -30,7 +30,7 @@ require "oedipus_lex.rex"
 # books.
 
 class OedipusLex
-  VERSION = "2.6.0" # :nodoc:
+  VERSION = "2.6.1" # :nodoc:
 
   ##
   # The class name to generate.
