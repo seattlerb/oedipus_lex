@@ -502,7 +502,6 @@ class OedipusLex
         end
 
 % end
-
         ##
         # The current scanner class. Must be overridden in subclasses.
 
